@@ -1,6 +1,6 @@
-名称: Windows Cloud RDP
+name: Windows Cloud RDP
 
-          }:
+on:
   workflow_dispatch:
 
 jobs:
