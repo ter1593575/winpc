@@ -1,4 +1,4 @@
-名称：Windows 云 RDP          }Windows Cloud RDP
+名称：Windows Cloud RDP
 
 on:
   workflow_dispatch:
