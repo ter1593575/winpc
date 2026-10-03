@@ -1,41 +1,40 @@
-名称：Windows 云 RDP: Windows Cloud RDP
+名称：Windows 云 RDP          }Windows Cloud RDP
 
-在：:
-  workflow_dispatch::
+on:
+  workflow_dispatch:
 
-职位：:
-  构建：:
-    运行环境：windows-latest: windows-latest
-    超时分钟数: 360: 360
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 360
 
-    步骤：:
-      - 名称：1. 启用远程桌面与防火墙name: 1. Enable Remote Desktop & Firewall
-        运行：|: |
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
-          启用-NetFirewallRule -DisplayGroup "远程桌面"
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 0
+    steps:
+      - name: 1. Enable Remote Desktop & Firewall
+        run: |
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0
 
-      - 名称：2. 创建管理员账户name: 2. Create Admin Account
-        运行：|: |
+      - name: 2. Create Admin Account
+        run: |
           $Password = ConvertTo-SecureString "P@ssw0rd1qazXSW@#" -AsPlainText -Force
           New-LocalUser -Name "NvdAdmin" -Password $Password -PasswordNeverExpires -ErrorAction SilentlyContinue
           Add-LocalGroupMember -Group "Administrators" -Member "NvdAdmin" -ErrorAction SilentlyContinue
           net user runneradmin P@ssw0rd1qazXSW@#
 
-      - 名称：3. 安装并连接 Tailscale VPNname: 3. Install & Connect Tailscale VPN
-        环境：:
-          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}: ${{ secrets.TAILSCALE_AUTHKEY }}
-        运行：|: |
+      - name: 3. Install & Connect Tailscale VPN
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
           # 静默下载并安装 Tailscale
           Invoke-WebRequest "https://pkgs.tailscale.com/stable/tailscale-setup-latest-amd64.msi" -OutFile "C:\tailscale.msi"
-          启动进程 msiexec -参数列表 "/i C:\tailscale.msi /quiet /norestart" -等待
+          Start-Process msiexec -ArgumentList "/i C:\tailscale.msi /quiet /norestart" -Wait
 
           # 连接到 Tailscale 网络
-          开始休眠 - 秒数 5
+          Start-Sleep -Seconds 5
           & "C:\Program Files\Tailscale\tailscale.exe" up --authkey="$Env:TAILSCALE_AUTHKEY" --hostname="github-rdp-server"
 
           Start-Sleep -Seconds 8
-           Get Tailscale IP
           $ts_ip = & "C:\Program Files\Tailscale\tailscale.exe" ip -4
           Write-Host ""
           Write-Host "==========================================" -ForegroundColor Green
